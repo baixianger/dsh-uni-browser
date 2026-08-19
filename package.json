@@ -1,0 +1,20 @@
+{
+  "name": "dsh-uni-browser",
+  "version": "0.1.0-rc.0",
+  "description": "Persistent, auditable uni-browser profiles for DeepSeek Harness.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": { ".": "./lib/index.js", "./client": "./lib/client.js", "./cordis.patch.yml": "./cordis.patch.yml", "./package.json": "./package.json" },
+  "dsh": { "client": { "inject": ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-settings"], "platform": "web" }, "bundle": { "patch": "./cordis.patch.yml" } },
+  "files": ["lib/", "docs/", "README.md", "LICENSE", "cordis.patch.yml"],
+  "scripts": { "check": "node --check lib/index.js && node --check lib/client.js && npm pack --dry-run", "test": "node --test test/**/*.test.mjs" },
+  "keywords": ["deepseek-harness", "dsh", "browser", "camoufox", "chromium", "uni-browser"],
+  "author": "Xiang Bai",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/baixianger/dsh-uni-browser.git" },
+  "homepage": "https://github.com/baixianger/dsh-uni-browser#readme",
+  "engines": { "node": ">=22" },
+  "publishConfig": { "access": "public", "tag": "next" },
+  "peerDependencies": { "@deepseek-ai/dsh-tools": ">=0.1.0-rc.5", "react": "^18.2.0" },
+  "devDependencies": { "@deepseek-ai/dsh-tools": "^0.1.0-rc.7" }
+}
