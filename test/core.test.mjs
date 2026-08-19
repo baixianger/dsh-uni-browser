@@ -4,7 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { DshUniBrowser, ProfileStore, UniBrowserClient } from "../lib/index.js";
+import { apply, DshUniBrowser, ProfileStore, UniBrowserClient } from "../lib/index.js";
 
 test("profile registry keeps a named persistent Camoufox profile", async () => {
   const root = await mkdtemp(join(tmpdir(), "dsh-uni-browser-")); const store = new ProfileStore({ root });
@@ -25,4 +25,14 @@ test("opening a profile passes its managed persistent directory to the daemon", 
   const root = await mkdtemp(join(tmpdir(), "dsh-uni-browser-")); const calls = []; const store = new ProfileStore({ root }); const service = new DshUniBrowser({ store, client: { async call(action, session, params) { calls.push({ action, session, params }); return { session }; } } });
   const profile = await service.create({ name: "Personal" }); await service.open(profile.id);
   assert.deepEqual(calls[0], { action: "session.create", session: "dsh-personal", params: { engine: "camoufox", headless: false, user_data_dir: join(root, "profiles", "personal"), audit: true } });
+});
+
+test("every registered tool compiles with DSH's strict output schema compiler", () => {
+  const tools = [];
+  apply({
+    provide() {},
+    connection: { rpc: { handle() {} } },
+    tools: { register(tool) { tools.push(tool); } }
+  });
+  assert.equal(tools.length, 10);
 });
