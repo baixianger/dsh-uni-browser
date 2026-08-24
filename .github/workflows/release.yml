@@ -1,0 +1,144 @@
+name: Publish plugin and runtimes
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  UNI_BROWSER_REPOSITORY: baixianger/uni-browser
+
+jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-24.04
+    outputs:
+      runtime-version: ${{ steps.versions.outputs.runtime-version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Validate plugin and runtime versions
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          plugin_version="$(node -p 'require("./package.json").version')"
+          if [[ "${GITHUB_REF_NAME}" != "v${plugin_version}" ]]; then
+            echo "tag ${GITHUB_REF_NAME} does not match plugin version ${plugin_version}" >&2
+            exit 1
+          fi
+          runtime_version="$(node -p 'new Set(Object.values(require("./package.json").optionalDependencies)).values().next().value')"
+          node -e '
+            const root = require("./package.json");
+            const expected = process.argv[1];
+            for (const [name, version] of Object.entries(root.optionalDependencies)) {
+              if (version !== expected) throw new Error(`${name} is ${version}; expected ${expected}`);
+            }
+            for (const dir of ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"]) {
+              const child = require(`./npm/${dir}/package.json`);
+              if (child.version !== expected) throw new Error(`${child.name} is ${child.version}; expected ${expected}`);
+            }
+          ' "${runtime_version}"
+          echo "runtime-version=${runtime_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Test and inspect package
+        run: |
+          npm ci --omit=optional
+          npm run check
+
+  runtimes:
+    name: Publish ${{ matrix.package-name }}
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            package-dir: darwin-arm64
+            package-name: dsh-uni-browser-darwin-arm64
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            package-dir: darwin-x64
+            package-name: dsh-uni-browser-darwin-x64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            package-dir: linux-arm64
+            package-name: dsh-uni-browser-linux-arm64
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            package-dir: linux-x64
+            package-name: dsh-uni-browser-linux-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Download private runtime release
+        env:
+          GH_TOKEN: ${{ secrets.UNI_BROWSER_RELEASE_TOKEN }}
+          RUNTIME_VERSION: ${{ needs.validate.outputs.runtime-version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN}" || { echo "UNI_BROWSER_RELEASE_TOKEN is required" >&2; exit 1; }
+          asset="uni-browser-v${RUNTIME_VERSION}-${{ matrix.target }}.tar.gz"
+          gh release download "v${RUNTIME_VERSION}" --repo "${UNI_BROWSER_REPOSITORY}" --pattern "${asset}" --pattern SHA256SUMS
+          expected="$(awk -v name="${asset}" '$2 == name { print $1 }' SHA256SUMS)"
+          actual="$(node -e 'const fs = require("node:fs"); const crypto = require("node:crypto"); const file = process.argv[1]; console.log(crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex"))' "${asset}")"
+          test -n "${expected}" && test "${actual}" = "${expected}"
+          tar -xzf "${asset}"
+          mkdir -p "npm/${{ matrix.package-dir }}/bin"
+          install -m 0755 "uni-browser-v${RUNTIME_VERSION}-${{ matrix.target }}/uni-browser" "npm/${{ matrix.package-dir }}/bin/uni-browser"
+          cp LICENSE "npm/${{ matrix.package-dir }}/LICENSE"
+          "npm/${{ matrix.package-dir }}/bin/uni-browser" --version
+
+      - name: Publish platform package once
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RUNTIME_VERSION: ${{ needs.validate.outputs.runtime-version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if npm view "${{ matrix.package-name }}@${RUNTIME_VERSION}" version >/dev/null 2>&1; then
+            echo "${{ matrix.package-name }}@${RUNTIME_VERSION} already exists"
+          else
+            npm publish "./npm/${{ matrix.package-dir }}" --access public
+          fi
+
+  plugin:
+    name: Publish dsh-uni-browser
+    needs: [validate, runtimes]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci --omit=optional
+      - name: Publish plugin once
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          if npm view "dsh-uni-browser@${version}" version >/dev/null 2>&1; then
+            echo "dsh-uni-browser@${version} already exists"
+          else
+            npm publish --tag next
+          fi

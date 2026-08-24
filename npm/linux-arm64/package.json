@@ -1,0 +1,12 @@
+{
+  "name": "dsh-uni-browser-linux-arm64",
+  "version": "0.1.2",
+  "description": "uni-browser runtime for Linux arm64, used by dsh-uni-browser.",
+  "main": "./bin/uni-browser",
+  "files": ["bin/", "LICENSE"],
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/baixianger/dsh-uni-browser.git" },
+  "publishConfig": { "access": "public" }
+}

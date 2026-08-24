@@ -9,9 +9,19 @@ Persistent, named browser profiles for [DeepSeek Harness](https://github.com/dee
 - Lets DSH agents navigate, snapshot, click, type, and press through uni-browser's audited action API.
 - Keeps browser passwords, cookies, and daemon tokens out of the DSH UI and tool parameters.
 
-## Prerequisite
+## Runtime
 
-Start a local uni-browser daemon first. The plugin connects to its standard Unix socket (`$UNI_BROWSER_SOCKET`, then `$XDG_RUNTIME_DIR/uni-browser/uni.sock`, then `~/.uni-browser/uni.sock`). It does not start a browser automatically.
+The npm installation includes the matching macOS or Linux `uni-browser`
+runtime as a platform-specific optional dependency. On first use, the plugin
+starts a private daemon under `~/.dsh/dsh-uni-browser/daemon` and then talks to
+it directly over its Unix socket.
+
+Set `UNI_BROWSER_SOCKET` to use an externally managed daemon, or
+`UNI_BROWSER_BIN` to use an explicit binary. Installations that deliberately
+omit optional npm dependencies must provide one of those overrides.
+
+New profiles default to system Chromium/Google Chrome. Camoufox remains
+available when `UNI_BROWSER_CAMOUFOX_BIN` points to a Camoufox installation.
 
 ## Login profiles
 

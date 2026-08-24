@@ -1,17 +1,51 @@
 import assert from "node:assert/strict";
 import net from "node:net";
+import { EventEmitter } from "node:events";
 import { mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { apply, DshUniBrowser, ProfileStore, UniBrowserClient } from "../lib/index.js";
+import { apply, DshUniBrowser, platformPackageName, ProfileStore, UniBrowserClient, UniBrowserRuntime } from "../lib/index.js";
 
-test("profile registry keeps a named persistent Camoufox profile", async () => {
+test("profile registry defaults new profiles to Chromium", async () => {
   const root = await mkdtemp(join(tmpdir(), "dsh-uni-browser-")); const store = new ProfileStore({ root });
   const profile = await store.create({ name: "Research Camoufox" });
-  assert.deepEqual(profile, { id: "research-camoufox", name: "Research Camoufox", engine: "camoufox", headless: false, session: "dsh-research-camoufox", createdAt: profile.createdAt });
+  assert.deepEqual(profile, { id: "research-camoufox", name: "Research Camoufox", engine: "chromium", headless: false, session: "dsh-research-camoufox", createdAt: profile.createdAt });
   assert.equal(store.profileDir(profile), join(root, "profiles", "research-camoufox"));
   assert.equal((await store.list()).length, 1);
+});
+
+test("runtime package names are deterministic for every supported target", () => {
+  assert.equal(platformPackageName("darwin", "arm64"), "dsh-uni-browser-darwin-arm64");
+  assert.equal(platformPackageName("darwin", "x64"), "dsh-uni-browser-darwin-x64");
+  assert.equal(platformPackageName("linux", "arm64"), "dsh-uni-browser-linux-arm64");
+  assert.equal(platformPackageName("linux", "x64"), "dsh-uni-browser-linux-x64");
+  assert.throws(() => platformPackageName("win32", "x64"), /does not provide/);
+});
+
+test("managed runtime serializes concurrent daemon startup", async () => {
+  const root = await mkdtemp(join(tmpdir(), "dsh-uni-browser-runtime-"));
+  let online = false; let spawns = 0;
+  const child = new EventEmitter(); child.exitCode = null; child.unref = () => {};
+  const runtime = new UniBrowserRuntime({
+    root,
+    binaryPath: "/bin/echo",
+    spawnProcess() { spawns += 1; return child; },
+    async wait() { online = true; }
+  });
+  const client = { async call() { if (!online) throw new Error("offline"); return { pong: true }; } };
+  const [first, second] = await Promise.all([runtime.ensure(client), runtime.ensure(client)]);
+  assert.equal(spawns, 1);
+  assert.equal(first.started, true);
+  assert.equal(second.started, true);
+  assert.equal(first.socketPath, join(root, "daemon", "uni.sock"));
+});
+
+test("explicit socket remains externally managed and never starts a daemon", async () => {
+  let spawns = 0;
+  const runtime = new UniBrowserRuntime({ socketPath: "/tmp/external-uni.sock", spawnProcess() { spawns += 1; } });
+  await assert.rejects(() => runtime.ensure({ async call() { throw new Error("offline"); } }), /externally managed/);
+  assert.equal(spawns, 0);
 });
 
 test("client sends a uni-browser NDJSON action over a Unix socket", async () => {
@@ -42,7 +76,7 @@ test("client bounds an unterminated daemon response", async () => {
 test("opening a profile passes its managed persistent directory to the daemon", async () => {
   const root = await mkdtemp(join(tmpdir(), "dsh-uni-browser-")); const calls = []; const store = new ProfileStore({ root }); const service = new DshUniBrowser({ store, client: { async call(action, session, params) { calls.push({ action, session, params }); return { session }; } } });
   const profile = await service.create({ name: "Personal" }); await service.open(profile.id);
-  assert.deepEqual(calls[0], { action: "session.create", session: "dsh-personal", params: { engine: "camoufox", headless: false, user_data_dir: join(root, "profiles", "personal"), audit: true } });
+  assert.deepEqual(calls[0], { action: "session.create", session: "dsh-personal", params: { engine: "chromium", headless: false, user_data_dir: join(root, "profiles", "personal"), audit: true } });
   assert.equal((await stat(join(root, "profiles"))).mode & 0o777, 0o700);
   assert.equal((await stat(join(root, "profiles", "personal"))).mode & 0o777, 0o700);
 });
