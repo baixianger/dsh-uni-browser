@@ -22,6 +22,8 @@ omit optional npm dependencies must provide one of those overrides.
 
 New profiles default to system Chromium/Google Chrome. Camoufox remains
 available when `UNI_BROWSER_CAMOUFOX_BIN` points to a Camoufox installation.
+The platform npm package contains the `uni-browser` daemon only; it neither
+reinstalls an existing browser nor downloads Chrome or Camoufox on demand.
 
 ## Login profiles
 
@@ -30,3 +32,8 @@ Create a profile with **headless disabled**, open it, and sign in yourself in th
 ## Security boundary
 
 This first release is local-only. It uses uni-browser's NDJSON action plane rather than direct CDP/Juggler passthrough, so browser actions remain in uni-browser's audit trail.
+
+## Maintainer documentation
+
+See [docs/releasing.md](docs/releasing.md) for the runtime version contract,
+GitHub release automation, npm Trusted Publishing setup, and recovery steps.
