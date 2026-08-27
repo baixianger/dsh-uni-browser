@@ -1,6 +1,8 @@
 # dsh-uni-browser
 
-Persistent, named browser profiles for [DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness), powered by a local [uni-browser](https://github.com/baixianger/uni-browser) daemon.
+[English](README.md) | [简体中文](README.zh.md)
+
+> Persistent, named browser profiles for [DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness), powered by a local [uni-browser](https://github.com/baixianger/uni-browser) daemon.
 
 ## What it does
 
@@ -8,6 +10,28 @@ Persistent, named browser profiles for [DeepSeek Harness](https://github.com/dee
 - Opens and stops profiles without losing their local cookies, localStorage, or IndexedDB.
 - Lets DSH agents navigate, snapshot, click, type, and press through uni-browser's audited action API.
 - Keeps browser passwords, cookies, and daemon tokens out of the DSH UI and tool parameters.
+
+## Quick start
+
+```bash
+dsh plugin --profile web add dsh-uni-browser@next
+dsh web
+```
+
+Open **Settings → Uni Browser**, create a profile, and choose **Open**. For a
+login profile, keep headless mode disabled and sign in yourself in the visible
+browser. The profile can then be selected explicitly by agent tools.
+
+## Agent tools
+
+| Tool | Purpose |
+| --- | --- |
+| `uni_browser_profiles` | List persistent profiles and their runtime state |
+| `uni_browser_profile_create` | Register a Chromium or Camoufox profile |
+| `uni_browser_open` / `uni_browser_close` | Start or stop a profile without deleting its state |
+| `uni_browser_forget` | Permanently delete a profile after explicit confirmation |
+| `uni_browser_navigate` / `uni_browser_snapshot` | Navigate and read the accessibility snapshot |
+| `uni_browser_click` / `uni_browser_type` / `uni_browser_press` | Interact through the audited action API |
 
 ## Runtime
 
@@ -32,6 +56,15 @@ Create a profile with **headless disabled**, open it, and sign in yourself in th
 ## Security boundary
 
 This first release is local-only. It uses uni-browser's NDJSON action plane rather than direct CDP/Juggler passthrough, so browser actions remain in uni-browser's audit trail.
+
+**Stop** preserves the profile directory. **Forget** permanently removes its
+cookies, local storage, IndexedDB, and other local login state after confirmation.
+
+## Platform support
+
+Prebuilt daemon packages are published for macOS and Linux on Apple Silicon,
+x64, and Linux ARM64. Windows is not included in the bundled-runtime matrix;
+use an externally managed daemon only if you have a compatible build.
 
 ## Maintainer documentation
 
