@@ -93,6 +93,7 @@ test("every registered tool compiles with DSH's strict output schema compiler", 
   const tools = [];
   apply({
     provide() {},
+    inject(_services, callback) { callback(this); },
     connection: { rpc: { handle() {} } },
     tools: { register(tool) { tools.push(tool); } }
   });
