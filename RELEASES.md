@@ -4,6 +4,7 @@ Release tags point at the exact source commit used to build the package. The boo
 
 | Version | Tag | Source commit | Summary |
 | --- | --- | --- | --- |
+| 0.1.0-rc.6 | `v0.1.0-rc.6` | [`b262e8e79ead18e4d192155834d6c807fccc01df`](https://github.com/baixianger/dsh-uni-browser/commit/b262e8e79ead18e4d192155834d6c807fccc01df) | DSH 0.1.5-compatible Web RPC route registration scoped to Web-server availability. |
 | 0.1.0-rc.5 | `v0.1.0-rc.5` | [`9894360dcbde53b571d999cb97a64ab5789ac758`](https://github.com/baixianger/dsh-uni-browser/commit/9894360dcbde53b571d999cb97a64ab5789ac758) | Bilingual setup, tools, runtime and security documentation, published through the existing tokenless workflow directly to `latest`. |
 | 0.1.0-rc.4 | `v0.1.0-rc.4` | [`82050e86124c4d0423a4fc719aa3a943ff51fcc0`](https://github.com/baixianger/dsh-uni-browser/commit/82050e86124c4d0423a4fc719aa3a943ff51fcc0) | Resolve the newly published optional runtime packages in the lockfile and verify tokenless npm Trusted Publishing end to end. |
 | 0.1.0-rc.3 | `v0.1.0-rc.3` | [`1d8a5176229fae0703d035062ec98516ecb35362`](https://github.com/baixianger/dsh-uni-browser/commit/1d8a5176229fae0703d035062ec98516ecb35362) | Package the pinned uni-browser runtime by platform, start its daemon on demand, and automate verified npm publishing. |
