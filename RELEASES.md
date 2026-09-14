@@ -1,5 +1,11 @@
 # Releases
 
+## 0.1.0-rc.7 · 2026-09-14
+
+Improve bilingual profile settings, preserve Unicode profile names with safe stable IDs, and clarify runtime and sign-in lifecycle.
+
+Source: [`v0.1.0-rc.7`](https://github.com/baixianger/dsh-uni-browser/tree/v0.1.0-rc.7). Distribution: `latest`.
+
 Release tags point at the exact source commit used to build the package. The bookkeeping commit that fills in a source SHA intentionally comes after that tag.
 
 | Version | Tag | Source commit | Summary |

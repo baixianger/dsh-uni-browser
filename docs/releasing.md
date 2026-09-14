@@ -40,9 +40,10 @@ dsh-uni-browser release workflow
 The platform package exposes its native executable as its package entrypoint.
 At first browser action, the plugin resolves the matching optional dependency,
 starts `uni-browser daemon serve` under
-`~/.dsh/dsh-uni-browser/daemon`, waits for its Unix socket, and sends NDJSON
+`$DSH_HOME/dsh-uni-browser/daemon` (default `~/.dsh/dsh-uni-browser/daemon`),
+waits for its Unix socket, and sends NDJSON
 actions over that socket. Subsequent browser operations do not invoke the CLI
-parser again.
+parser again. The plugin stops the daemon it started when it unloads.
 
 `UNI_BROWSER_SOCKET` selects an externally managed daemon and disables managed
 startup. `UNI_BROWSER_BIN` overrides only the executable while preserving the
@@ -68,7 +69,7 @@ checksummed feature with its own version and cache policy.
    binary, runs `uni-browser --version`, and publishes the missing platform
    package.
 3. **Publish plugin** runs only after all platform packages exist and publishes
-   the root package under the `next` dist-tag.
+   the root package under the `latest` dist-tag.
 
 Every publish step first queries npm for the exact version. A failed workflow
 can therefore be rerun safely: completed packages are skipped and only missing
@@ -95,12 +96,13 @@ Trusted Publishing is configured.
 
 The first version of a brand-new npm package must be created interactively
 before its package settings exist. After that one-time bootstrap, configure the
-trust relationship with npm CLI 11.12 or newer:
+trust relationship with a current npm CLI that supports `--allow-publish`:
 
 ```bash
 npm trust github PACKAGE_NAME \
   --file release.yml \
   --repo baixianger/dsh-uni-browser \
+  --allow-publish \
   --yes
 ```
 

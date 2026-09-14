@@ -1,95 +1,82 @@
-# dsh-uni-browser
+<div align="center">
 
-[English](README.md) | [简体中文](README.zh.md)
+<img src="docs/assets/hero.svg" alt="DSH Uni Browser" width="100%" />
 
-> 为 [DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 提供可持久化、可命名的浏览器配置，由本地 [uni-browser](https://github.com/baixianger/uni-browser) daemon 驱动。
+# DSH Uni Browser
 
-`dsh-uni-browser` 让用户在 DSH 设置中管理独立的 Chromium 或 Camoufox 配置，
-手动登录一次后保留本地 Cookie、localStorage 和 IndexedDB，同时让 Agent 通过可审计的动作 API 操作页面。
+[English](README.md) · [简体中文](README.zh.md)
 
-## 核心能力
+[![npm](https://img.shields.io/npm/v/dsh-uni-browser?style=flat-square&color=374151)](https://www.npmjs.com/package/dsh-uni-browser) [![License: MIT](https://img.shields.io/badge/License-MIT-374151?style=flat-square)](LICENSE) [![DSH plugin](https://img.shields.io/badge/DSH-plugin-374151?style=flat-square)](https://github.com/topics/dsh-plugin)
 
-- 在 **DSH 设置 → Uni Browser** 中注册并管理命名浏览器配置。
-- 启动和停止配置时保留本地 Cookie、localStorage 与 IndexedDB。
-- 让 DSH Agent 通过 uni-browser 已审计的 action API 导航、读取快照、点击、输入和按键。
-- 浏览器密码、Cookie 和 daemon token 不进入 DSH UI 或工具参数。
+</div>
+
+为 DSH Agent 提供有名字、能保留本地登录状态的浏览器配置。先打开可见浏览器自行登录，之后的 Agent 任务继续复用同一配置。
+
+## 保留浏览器上下文
+
+| 能力 | 行为 |
+| --- | --- |
+| **命名配置** | 独立的 Chromium 或 Camoufox 配置，支持中文等 Unicode 名称。 |
+| **持久登录** | 复用本地 cookies、localStorage 和 IndexedDB。 |
+| **Agent 操作** | 通过 uni-browser action API 导航、快照、点击、输入和按键。 |
+| **托管运行时** | 按需启动本机私有 daemon。 |
+| **明确操作** | 打开和停止保留状态，忘记配置需确认后才删除。 |
 
 ## 快速开始
 
 ```bash
-dsh plugin --profile web add dsh-uni-browser@next
+dsh plugin --profile web add dsh-uni-browser@latest
 dsh web
 ```
 
-1. 打开 **设置 → Uni Browser**。
-2. 输入配置名称，选择 Chromium 或 Camoufox，然后创建。
-3. 选择 **Open** 启动可见浏览器。
-4. 如果需要账号状态，请自己在浏览器中完成登录。
-5. 之后 Agent 可以显式指定该 profile 进行浏览器操作。
+1. 打开 **设置 → Uni Browser** 并创建配置。
+2. 需要登录的配置保持 **headless 关闭**。
+3. 点击 **打开**，在可见浏览器中自行完成登录。
+4. 让 Agent 在浏览器任务中使用这个配置。
+
+设置页支持中英文与 DSH 主题，区分加载中、空列表、运行状态和操作失败。中文等 Unicode 名称保留显示标签，并获得稳定的内部标识。
 
 ## Agent 工具
 
-| 工具 | 作用 |
+| 工具 | 用途 |
 | --- | --- |
-| `uni_browser_profiles` | 列出持久化配置与运行状态 |
-| `uni_browser_profile_create` | 注册 Chromium 或 Camoufox 配置 |
-| `uni_browser_open` | 启动配置并恢复本地登录状态 |
-| `uni_browser_close` | 停止配置，但不删除本地状态 |
-| `uni_browser_forget` | 经明确确认后永久删除配置 |
-| `uni_browser_navigate` | 导航到 URL |
-| `uni_browser_snapshot` | 读取页面可访问性快照 |
-| `uni_browser_click` / `uni_browser_type` / `uni_browser_press` | 通过审计动作 API 与页面交互 |
+| `uni_browser_profiles` | 列出配置和运行状态。 |
+| `uni_browser_profile_create` | 创建命名配置。 |
+| `uni_browser_open` / `uni_browser_close` | 启停浏览器，保留本地状态。 |
+| `uni_browser_forget` | 明确确认后删除配置。 |
+| `uni_browser_navigate` / `uni_browser_snapshot` | 导航并读取无障碍快照。 |
+| `uni_browser_click` / `uni_browser_type` / `uni_browser_press` | 操作选中的配置。 |
 
-## 运行时
+## 运行时与浏览器引擎
 
-npm 安装会通过平台可选依赖带上与 macOS 或 Linux 匹配的 `uni-browser` 运行时。
-首次使用时，插件会在 `~/.dsh/dsh-uni-browser/daemon` 下启动私有 daemon，
-然后通过 Unix socket 直接与它通信。
+npm 会按平台安装 **uni-browser daemon**，支持 macOS ARM64/x64 和 Linux ARM64/x64。daemon 启动在 `$DSH_HOME/dsh-uni-browser/daemon` 下，通过私有 Unix socket 通信。
 
-如果要使用外部管理的 daemon，可设置：
+默认复用已经安装的 Chrome/Chromium。使用 Camoufox 时，通过 `UNI_BROWSER_CAMOUFOX_BIN` 提供其可执行文件；运行时包不负责安装浏览器引擎。
 
-- `UNI_BROWSER_SOCKET`：指定已有 daemon socket；
-- `UNI_BROWSER_BIN`：指定明确的 daemon 可执行文件。
+| 环境变量 | 用途 |
+| --- | --- |
+| `UNI_BROWSER_SOCKET` | 使用外部管理的 daemon。 |
+| `UNI_BROWSER_BIN` | 指定 daemon 可执行文件。 |
+| `UNI_BROWSER_CHROMIUM_BIN` | 指定 Chromium/Chrome 可执行文件。 |
+| `UNI_BROWSER_CAMOUFOX_BIN` | 指定 Camoufox 可执行文件。 |
 
-如果安装时刻意省略 optional dependencies，必须提供其中一个覆盖项。
+如果安装时忽略了 optional dependencies，需要提供 daemon socket 或可执行文件。预编译运行时暂不覆盖 Windows。
 
-新配置默认使用系统 Chromium / Google Chrome。如果已安装 Camoufox，设置
-`UNI_BROWSER_CAMOUFOX_BIN` 后可以选择 Camoufox。平台 npm 包只包含 `uni-browser` daemon，
-不会重装现有浏览器，也不会按需下载 Chrome 或 Camoufox。
+## 状态与生命周期
 
-## 登录配置
+**停止**会保留配置目录；**忘记配置**经确认后永久删除 cookies、local storage、IndexedDB 和其他本地登录状态。
 
-创建 profile 时保持 headless 关闭，启动后在可见浏览器中自行登录。后续启动会重用同一个受管 profile 目录。
-
-- **Stop** 只停止浏览器，保留登录状态。
-- **Forget** 需要明确确认，并会永久删除 Cookie、localStorage、IndexedDB 和其他本地状态。
-
-## 安全边界
-
-当前版本仅面向本机。插件使用 uni-browser 的 NDJSON action plane，不把 CDP/Juggler
-原始协议直接暴露给 Agent，因此浏览器操作会留在 uni-browser 审计记录中。
-
-## 平台支持
-
-预构建 daemon 包覆盖：
-
-- macOS Apple Silicon；
-- macOS x64；
-- Linux x64；
-- Linux ARM64。
-
-当前捆绑运行时不包含 Windows。只有在自行提供兼容 daemon 时，才应通过环境变量连接。
+插件卸载时只停止自己启动的 daemon，外部管理的 daemon 保持不变。操作通过 uni-browser 可审计的 NDJSON API，不直接透传底层浏览器调试协议。密码和 cookies 不作为配置或工具参数传递。
 
 ## 维护者文档
 
-[发布指南](docs/releasing.md) 说明了运行时版本合约、GitHub Release 自动化、npm Trusted Publishing 和故障恢复步骤。
+[发布与运行时指南](docs/releasing.md) 说明平台包版本固定、校验和验证与发布顺序。插件和运行时独立演进，上游发布不会改变已经发布的插件版本。
 
-## 开发
+## 开发与反馈
 
 ```bash
+npm ci
 npm run check
 ```
 
-## 许可证
-
-MIT © Xiang Bai
+[提交问题](https://github.com/baixianger/dsh-uni-browser/issues) · [版本记录](RELEASES.md) · [MIT 许可证](LICENSE)

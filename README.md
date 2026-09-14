@@ -1,72 +1,82 @@
-# dsh-uni-browser
+<div align="center">
 
-[English](README.md) | [简体中文](README.zh.md)
+<img src="docs/assets/hero.svg" alt="DSH Uni Browser" width="100%" />
 
-> Persistent, named browser profiles for [DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness), powered by a local [uni-browser](https://github.com/baixianger/uni-browser) daemon.
+# DSH Uni Browser
 
-## What it does
+[English](README.md) · [简体中文](README.zh.md)
 
-- Registers named Camoufox or Chromium profiles in DSH Settings → Uni Browser.
-- Opens and stops profiles without losing their local cookies, localStorage, or IndexedDB.
-- Lets DSH agents navigate, snapshot, click, type, and press through uni-browser's audited action API.
-- Keeps browser passwords, cookies, and daemon tokens out of the DSH UI and tool parameters.
+[![npm](https://img.shields.io/npm/v/dsh-uni-browser?style=flat-square&color=374151)](https://www.npmjs.com/package/dsh-uni-browser) [![License: MIT](https://img.shields.io/badge/License-MIT-374151?style=flat-square)](LICENSE) [![DSH plugin](https://img.shields.io/badge/DSH-plugin-374151?style=flat-square)](https://github.com/topics/dsh-plugin)
+
+</div>
+
+Give DSH agents named browser profiles that retain their local sign-in state. Open a visible browser to log in yourself, then reuse that profile for later agent work.
+
+## Keep your browser context
+
+| Capability | Behavior |
+| --- | --- |
+| **Named profiles** | Separate Chromium or Camoufox profiles, including Unicode names. |
+| **Persistent sign-in** | Reuse local cookies, localStorage, and IndexedDB. |
+| **Agent actions** | Navigate, snapshot, click, type, and press through uni-browser's action API. |
+| **Managed runtime** | Start a private local daemon on demand. |
+| **Clear controls** | Open and Stop keep state; Forget removes it after confirmation. |
 
 ## Quick start
 
 ```bash
-dsh plugin --profile web add dsh-uni-browser@next
+dsh plugin --profile web add dsh-uni-browser@latest
 dsh web
 ```
 
-Open **Settings → Uni Browser**, create a profile, and choose **Open**. For a
-login profile, keep headless mode disabled and sign in yourself in the visible
-browser. The profile can then be selected explicitly by agent tools.
+1. Open **Settings → Uni Browser** and create a profile.
+2. Keep **headless disabled** for a profile you need to sign into.
+3. Choose **Open**, then complete sign-in yourself in the visible browser.
+4. Ask the agent to use that profile for its browser task.
+
+The settings page supports English/Chinese and DSH's theme. It distinguishes loading, empty lists, running profiles, and failed operations. Chinese and other Unicode names keep their display label while receiving a stable internal identifier.
 
 ## Agent tools
 
 | Tool | Purpose |
 | --- | --- |
-| `uni_browser_profiles` | List persistent profiles and their runtime state |
-| `uni_browser_profile_create` | Register a Chromium or Camoufox profile |
-| `uni_browser_open` / `uni_browser_close` | Start or stop a profile without deleting its state |
-| `uni_browser_forget` | Permanently delete a profile after explicit confirmation |
-| `uni_browser_navigate` / `uni_browser_snapshot` | Navigate and read the accessibility snapshot |
-| `uni_browser_click` / `uni_browser_type` / `uni_browser_press` | Interact through the audited action API |
+| `uni_browser_profiles` | List profiles and runtime state. |
+| `uni_browser_profile_create` | Create a named profile. |
+| `uni_browser_open` / `uni_browser_close` | Start or stop without deleting local state. |
+| `uni_browser_forget` | Delete a profile after explicit confirmation. |
+| `uni_browser_navigate` / `uni_browser_snapshot` | Navigate and read an accessibility snapshot. |
+| `uni_browser_click` / `uni_browser_type` / `uni_browser_press` | Interact with the selected profile. |
 
-## Runtime
+## Runtime & browser engines
 
-The npm installation includes the matching macOS or Linux `uni-browser`
-runtime as a platform-specific optional dependency. On first use, the plugin
-starts a private daemon under `~/.dsh/dsh-uni-browser/daemon` and then talks to
-it directly over its Unix socket.
+npm installs a matching **uni-browser daemon** for macOS ARM64/x64 or Linux ARM64/x64. The daemon starts under `$DSH_HOME/dsh-uni-browser/daemon` and communicates over a private Unix socket.
 
-Set `UNI_BROWSER_SOCKET` to use an externally managed daemon, or
-`UNI_BROWSER_BIN` to use an explicit binary. Installations that deliberately
-omit optional npm dependencies must provide one of those overrides.
+The plugin reuses installed Chrome/Chromium by default. For Camoufox, provide its executable with `UNI_BROWSER_CAMOUFOX_BIN`. The runtime package does not install a browser engine.
 
-New profiles default to system Chromium/Google Chrome. Camoufox remains
-available when `UNI_BROWSER_CAMOUFOX_BIN` points to a Camoufox installation.
-The platform npm package contains the `uni-browser` daemon only; it neither
-reinstalls an existing browser nor downloads Chrome or Camoufox on demand.
+| Variable | Purpose |
+| --- | --- |
+| `UNI_BROWSER_SOCKET` | Use an externally managed daemon. |
+| `UNI_BROWSER_BIN` | Use an explicit daemon executable. |
+| `UNI_BROWSER_CHROMIUM_BIN` | Select the Chromium/Chrome executable. |
+| `UNI_BROWSER_CAMOUFOX_BIN` | Select the Camoufox executable. |
 
-## Login profiles
+If optional npm dependencies were omitted, supply a daemon socket or executable. Windows is outside the bundled runtime matrix.
 
-Create a profile with **headless disabled**, open it, and sign in yourself in the visible browser. Later opens reuse the same managed profile directory. **Stop** retains it; **Forget** permanently removes it after confirmation.
+## State & lifecycle
 
-## Security boundary
+**Stop** retains the profile directory. **Forget** permanently removes cookies, local storage, IndexedDB, and other local sign-in state after confirmation.
 
-This first release is local-only. It uses uni-browser's NDJSON action plane rather than direct CDP/Juggler passthrough, so browser actions remain in uni-browser's audit trail.
+Unloading stops a daemon started by this plugin; an externally managed daemon is left alone. Actions use uni-browser's audited NDJSON API rather than raw browser-debugging passthrough. Passwords and cookies are not passed as profile configuration or tool parameters.
 
-**Stop** preserves the profile directory. **Forget** permanently removes its
-cookies, local storage, IndexedDB, and other local login state after confirmation.
+## For maintainers
 
-## Platform support
+[Release and runtime guide](docs/releasing.md) explains pinned platform packages, checksum verification, and publication order. Plugin and runtime versions evolve independently; a new upstream runtime never changes an already-published plugin.
 
-Prebuilt daemon packages are published for macOS and Linux on Apple Silicon,
-x64, and Linux ARM64. Windows is not included in the bundled-runtime matrix;
-use an externally managed daemon only if you have a compatible build.
+## Development & feedback
 
-## Maintainer documentation
+```bash
+npm ci
+npm run check
+```
 
-See [docs/releasing.md](docs/releasing.md) for the runtime version contract,
-GitHub release automation, npm Trusted Publishing setup, and recovery steps.
+[Report an issue](https://github.com/baixianger/dsh-uni-browser/issues) · [Release notes](RELEASES.md) · [MIT license](LICENSE)
